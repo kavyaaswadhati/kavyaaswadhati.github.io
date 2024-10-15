@@ -1,51 +1,147 @@
-.me {height: 500px;border-style: solid;border-color: darkslateblue;}
-.me:hover{border-color: gold;border-radius:10px;border-width: 10px;}
-.hi{height: 100px;}
-
-h1{
-    text-align: center;
-    text-transform: uppercase;
-    color: olivedrab;
+@font-face {
+    font-family: 'avarabold';
+    src: url('webfonts/Bold/Avara-Bold.eot');
+    src: url('webfonts/Bold/Avara-Bold_web.eot?#iefix') format('embedded-opentype'),
+        url('webfonts/Bold/Avara-Bold_web.woff') format('woff'),
+        url('webfonts/Bold/Avara-Bold_web.woff2') format('woff2'),
+        url('webfonts/Bold/Avara-Bold_web.ttf') format('truetype'),
+        url('webfonts/Bold/Avara-Bold_web.svg#svgFontName') format('svg');
+    font-weight: normal;
+    font-style: normal;
 }
 
 
-.gallery {
-    display: flex;
-    gap: 20px;
-  }
-  
-  .card {
-    width: 200px;
-    height: 300px;
-    perspective: 1000px;
-  }
-  
-  .card-inner {
-    width: 100%;
-    height: 100%;
-    position: relative;
-    transition: transform 0.8s;
-    transform-style: preserve-3d;
+/* Responsive Design */
+@media (max-width: 768px) {
+    .card {
+        max-width: 200px;
+        height: 250px;
+    }
+}
+
+@media (max-width: 480px) {
+    .card {
+        max-width: 150px;
+        height: 200px;
+    }
+}
+
+*/ * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+header {
+    text-align: center;
+    background-color: #ffffff;
+    padding: 20px;
+}
+
+h1 {
+    width: auto;
+    height: auto;
+    font-family: 'avarabold';
+    font-size: 35px;
+    line-height: 45px;
+    color: #69e78bc7;
+    background-color: transparent;
+    border: none;
     cursor: pointer;
-  }
-  
-  .card:hover .card-inner {
-    transform: rotateY(180deg);
-  }
-  
-  .card-front, .card-back {
-    position: absolute;
+}
+
+h2 {
+    width: auto;
+    height: auto;
+    color: #69e78bc7;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.subtitle {
+    width: auto;
+    height: auto;
+    font-family: 'avarabold';
+    font-size: 35px;
+    line-height: 45px;
+    color: #ffffff;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+
+.gallery-item {
+    overflow: hidden;
+}
+
+.gallery-item img {
     width: 100%;
-    height: 100%;
-    backface-visibility: hidden;
-  }
-  
-  .card-front img, .card-back img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  
-  .card-back {
-    transform: rotateY(180deg);
-  }
+    height: auto;
+    object-fit: contain;
+}
+
+.gallery {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    /* 4 columns by default */
+    gap: 20px;
+    padding: 20px;
+    max-width: 1200px;
+}
+
+main {
+    max-width: 800px;
+    margin: 50px auto;
+    text-align: center;
+    font-family: 'Avara', sans-serif;
+    font-size: 18px;
+    line-height: 1.6;
+    color: #333;
+}
+
+nav {
+    margin-top: 20px;
+}
+
+nav a {
+    margin: 0 10px;
+    text-decoration: none;
+    font-weight: bold;
+    color: #007BFF;
+    /* Blue color for links */
+    font-size: 20px;
+}
+
+nav a:hover {
+    color: #0056b3;
+    /* Darker shade of blue on hover */
+}
+
+p {
+    font-size: 20px;
+    color: #555;
+}
+
+
+@media (max-width: 1024px) {
+    .gallery {
+        grid-template-columns: repeat(3, 1fr);
+        /* 3 columns for tablet screens */
+    }
+}
+
+@media (max-width: 768px) {
+    .gallery {
+        grid-template-columns: repeat(2, 1fr);
+        /* 2 columns for smaller screens */
+    }
+}
+
+@media (max-width: 480px) {
+    .gallery {
+        grid-template-columns: 1fr;
+        /* 1 column for mobile screens */
+    }
+}
