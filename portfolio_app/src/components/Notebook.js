@@ -4,7 +4,7 @@ import React from 'react';
 import HTMLFlipBook from 'react-pageflip';
 import './Notebook.css';
 
-const Flipbook = () => {
+const Notebook = () => {
   const images = [
     'https://github.com/kavyaaswadhati/kavyaaswadhati.github.io/blob/master/portfolio_app/src/images/black_and_green_peau_d_ane.png',
     'https://github.com/kavyaaswadhati/kavyaaswadhati.github.io/blob/master/portfolio_app/src/images/blue_rainbows.png',
