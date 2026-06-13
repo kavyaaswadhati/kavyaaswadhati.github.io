@@ -1,0 +1,34 @@
+{
+  "name": "kavya-digital",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "npm run images && next build",
+    "start": "next start",
+    "lint": "eslint",
+    "images": "node scripts/generate-images.cjs"
+  },
+  "dependencies": {
+    "next": "^16.2.9",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.1",
+    "@types/node": "^25.9.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.2.9",
+    "sharp": "^0.35.1",
+    "tailwindcss": "^4.3.1",
+    "typescript": "^6.0.3"
+  },
+  "overrides": {
+    "postcss": "^8.5.15"
+  }
+}
