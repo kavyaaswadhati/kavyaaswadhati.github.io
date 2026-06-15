@@ -6,6 +6,7 @@ export type ProjectImage = {
 };
 
 export type ProjectGroup = {
+  slug?: string;
   title?: string;
   layout?: 'gallery' | 'flipbook';
   description?: string;
@@ -97,6 +98,7 @@ export const projectSections: ProjectSection[] = [
     label: 'zines',
     groups: [
       {
+        slug: 'northern-elephant-seals',
         title: 'northern elephant seals',
         layout: 'flipbook',
         description: '',

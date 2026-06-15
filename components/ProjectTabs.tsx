@@ -9,17 +9,30 @@ const HTMLFlipBook = dynamic(() => import('react-pageflip'), {
   ssr: false,
 });
 
-export default function ProjectTabs() {
-  const [activeSectionId, setActiveSectionId] = useState(projectSections[0].id);
+type ProjectTabsProps = {
+  sectionId?: (typeof projectSections)[number]['id'];
+  groupSlug?: string;
+  showTabs?: boolean;
+};
+
+export default function ProjectTabs({ sectionId, groupSlug, showTabs = true }: ProjectTabsProps) {
+  const [activeSectionId, setActiveSectionId] = useState(sectionId ?? projectSections[0].id);
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
 
   const activeSection = useMemo(
     () => projectSections.find((section) => section.id === activeSectionId) ?? projectSections[0],
     [activeSectionId],
   );
+  const activeGroups = useMemo(
+    () =>
+      groupSlug
+        ? activeSection.groups.filter((group) => group.slug === groupSlug)
+        : activeSection.groups,
+    [activeSection.groups, groupSlug],
+  );
   const activeImages = useMemo(
-    () => activeSection.groups.flatMap((group) => group.images),
-    [activeSection],
+    () => activeGroups.flatMap((group) => group.images),
+    [activeGroups],
   );
   const activeImage = activeImageIndex === null ? null : activeImages[activeImageIndex] ?? null;
 
@@ -69,25 +82,27 @@ export default function ProjectTabs() {
 
   return (
     <>
-      <div className="mx-auto mt-5 flex max-w-[1200px] justify-center gap-2 px-5" role="tablist">
-        {projectSections.map((section) => (
-          <button
-            key={section.id}
-            type="button"
-            role="tab"
-            aria-selected={section.id === activeSectionId}
-            aria-controls={`${section.id}-panel`}
-            id={`${section.id}-tab`}
-            className="border-b-2 border-transparent px-3 py-2 text-lg font-bold text-[var(--link)] transition-colors aria-selected:border-[var(--accent)] aria-selected:text-[#004f91]"
-            onClick={() => {
-              setActiveSectionId(section.id);
-              setActiveImageIndex(null);
-            }}
-          >
-            {section.label}
-          </button>
-        ))}
-      </div>
+      {showTabs && (
+        <div className="mx-auto mt-5 flex max-w-[1200px] justify-center gap-2 px-5" role="tablist">
+          {projectSections.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              role="tab"
+              aria-selected={section.id === activeSectionId}
+              aria-controls={`${section.id}-panel`}
+              id={`${section.id}-tab`}
+              className="border-b-2 border-transparent px-3 py-2 text-lg font-bold text-[var(--link)] transition-colors aria-selected:border-[var(--accent)] aria-selected:text-[#004f91]"
+              onClick={() => {
+                setActiveSectionId(section.id);
+                setActiveImageIndex(null);
+              }}
+            >
+              {section.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <section
         id={`${activeSection.id}-panel`}
@@ -96,7 +111,7 @@ export default function ProjectTabs() {
         className="mx-auto grid max-w-[1200px] grid-cols-1 gap-5 px-5 py-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       >
         {activeImages.length > 0 ? (
-          activeSection.groups.map((group) => (
+          activeGroups.map((group) => (
             <ProjectGroupView
               key={group.title ?? activeSection.id}
               group={group}
