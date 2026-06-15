@@ -2,47 +2,81 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const sharp = require('sharp');
 
-const sourceDir = path.join(process.cwd(), 'source-images');
-const outputDir = path.join(process.cwd(), 'public', 'images');
+const sourceRoot = path.join(process.cwd(), 'source-images');
+const outputRoot = path.join(process.cwd(), 'public', 'images');
+const sections = ['sketchbooks', 'zines'];
 const sizes = [
   { folder: 'thumbs', width: 480, quality: 76 },
   { folder: 'large', width: 1600, quality: 82 },
 ];
 
+async function collectPngFiles(dir, prefix = '') {
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  const files = [];
+
+  for (const entry of entries) {
+    const relativePath = path.join(prefix, entry.name);
+    const fullPath = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      files.push(...(await collectPngFiles(fullPath, relativePath)));
+    }
+
+    if (entry.isFile() && entry.name.toLowerCase().endsWith('.png')) {
+      files.push(relativePath);
+    }
+  }
+
+  return files.sort();
+}
+
 async function main() {
-  await fs.mkdir(outputDir, { recursive: true });
+  await fs.mkdir(outputRoot, { recursive: true });
 
   try {
-    await fs.access(sourceDir);
+    await fs.access(sourceRoot);
   } catch {
     console.log('source-images/ not found; using committed optimized images.');
     return;
   }
 
-  const files = (await fs.readdir(sourceDir))
-    .filter((file) => file.toLowerCase().endsWith('.png'))
-    .sort();
+  let generated = 0;
 
-  await Promise.all(
-    sizes.map(({ folder }) => fs.mkdir(path.join(outputDir, folder), { recursive: true })),
-  );
+  for (const section of sections) {
+    const sourceDir = path.join(sourceRoot, section);
+    const outputDir = path.join(outputRoot, section);
 
-  for (const file of files) {
-    const source = path.join(sourceDir, file);
-    const name = file.replace(/\.png$/i, '.jpg');
+    try {
+      await fs.access(sourceDir);
+    } catch {
+      continue;
+    }
 
-    await Promise.all(
-      sizes.map(({ folder, width, quality }) =>
-        sharp(source)
-          .rotate()
-          .resize({ width, withoutEnlargement: true })
-          .jpeg({ quality, mozjpeg: true })
-          .toFile(path.join(outputDir, folder, name)),
-      ),
-    );
+    const files = await collectPngFiles(sourceDir);
+
+    for (const file of files) {
+      const source = path.join(sourceDir, file);
+      const name = file.replace(/\.png$/i, '.jpg');
+
+      await Promise.all(
+        sizes.map(async ({ folder, width, quality }) => {
+          const output = path.join(outputDir, folder, name);
+
+          await fs.mkdir(path.dirname(output), { recursive: true });
+
+          return sharp(source)
+            .rotate()
+            .resize({ width, withoutEnlargement: true })
+            .jpeg({ quality, mozjpeg: true })
+            .toFile(output);
+        }),
+      );
+
+      generated += sizes.length;
+    }
   }
 
-  console.log(`Generated ${files.length * sizes.length} optimized images.`);
+  console.log(`Generated ${generated} optimized images.`);
 }
 
 main().catch((error) => {
