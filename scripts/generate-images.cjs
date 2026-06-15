@@ -19,7 +19,9 @@ async function collectPngFiles(dir, prefix = '') {
     const fullPath = path.join(dir, entry.name);
 
     if (entry.isDirectory()) {
-      files.push(...(await collectPngFiles(fullPath, relativePath)));
+      if (!entry.name.startsWith('_')) {
+        files.push(...(await collectPngFiles(fullPath, relativePath)));
+      }
     }
 
     if (entry.isFile() && entry.name.toLowerCase().endsWith('.png')) {

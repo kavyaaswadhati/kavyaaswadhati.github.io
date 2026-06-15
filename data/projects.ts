@@ -7,6 +7,12 @@ export type ProjectImage = {
 
 export type ProjectGroup = {
   title?: string;
+  layout?: 'gallery' | 'flipbook';
+  description?: string;
+  links?: Array<{
+    label: string;
+    href: string;
+  }>;
   images: ProjectImage[];
 };
 
@@ -47,14 +53,20 @@ const sketchbookItems = [
 
 const northernElephantSealsItems = [
   { file: '00_front.jpg', alt: 'Northern Elephant Seals front cover' },
-  { file: '01_02.jpg', alt: 'Northern Elephant Seals pages 1 and 2' },
-  { file: '03_04.jpg', alt: 'Northern Elephant Seals pages 3 and 4' },
-  { file: '05_06.jpg', alt: 'Northern Elephant Seals pages 5 and 6' },
-  { file: '07_08.jpg', alt: 'Northern Elephant Seals pages 7 and 8' },
-  { file: '09_10.jpg', alt: 'Northern Elephant Seals pages 9 and 10' },
-  { file: '11-14.jpg', alt: 'Northern Elephant Seals pages 11 through 14' },
-  { file: '11_12.jpg', alt: 'Northern Elephant Seals pages 11 and 12' },
-  { file: '13_14.jpg', alt: 'Northern Elephant Seals pages 13 and 14' },
+  { file: '01.jpg', alt: 'Northern Elephant Seals page 1' },
+  { file: '02.jpg', alt: 'Northern Elephant Seals page 2' },
+  { file: '03.jpg', alt: 'Northern Elephant Seals page 3' },
+  { file: '04.jpg', alt: 'Northern Elephant Seals page 4' },
+  { file: '05.jpg', alt: 'Northern Elephant Seals page 5' },
+  { file: '06.jpg', alt: 'Northern Elephant Seals page 6' },
+  { file: '07.jpg', alt: 'Northern Elephant Seals page 7' },
+  { file: '08.jpg', alt: 'Northern Elephant Seals page 8' },
+  { file: '09.jpg', alt: 'Northern Elephant Seals page 9' },
+  { file: '10.jpg', alt: 'Northern Elephant Seals page 10' },
+  { file: '11.jpg', alt: 'Northern Elephant Seals page 11' },
+  { file: '12.jpg', alt: 'Northern Elephant Seals page 12' },
+  { file: '13.jpg', alt: 'Northern Elephant Seals page 13' },
+  { file: '14.jpg', alt: 'Northern Elephant Seals page 14' },
   { file: '16_back_cover.jpg', alt: 'Northern Elephant Seals back cover' },
 ];
 
@@ -86,6 +98,9 @@ export const projectSections: ProjectSection[] = [
     groups: [
       {
         title: 'northern elephant seals',
+        layout: 'flipbook',
+        description: '',
+        links: [],
         images: northernElephantSealsItems.map(({ file, alt }) =>
           imageFromFile('zines', file, alt, 'northern-elephant-seals/'),
         ),

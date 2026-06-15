@@ -1,8 +1,13 @@
 'use client';
 
 import Image from 'next/image';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { projectSections } from '@/data/projects';
+import dynamic from 'next/dynamic';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ProjectGroup, projectSections } from '@/data/projects';
+
+const HTMLFlipBook = dynamic(() => import('react-pageflip'), {
+  ssr: false,
+});
 
 export default function ProjectTabs() {
   const [activeSectionId, setActiveSectionId] = useState(projectSections[0].id);
@@ -92,34 +97,12 @@ export default function ProjectTabs() {
       >
         {activeImages.length > 0 ? (
           activeSection.groups.map((group) => (
-            <div key={group.title ?? activeSection.id} className="contents">
-              {group.title && (
-                <h2 className="col-span-full mt-4 font-[Avara] text-2xl font-normal text-[var(--accent)]">
-                  {group.title}
-                </h2>
-              )}
-              {group.images.map((image) => {
-                const index = activeImages.findIndex((item) => item.slug === image.slug);
-
-                return (
-                  <button
-                    type="button"
-                    key={image.slug}
-                    className="group relative aspect-[4/3] cursor-zoom-in overflow-hidden border-0 bg-transparent p-0"
-                    onClick={() => setActiveImageIndex(index)}
-                    aria-label={`Open ${image.alt}`}
-                  >
-                    <Image
-                      src={image.thumb}
-                      alt={image.alt}
-                      fill
-                      className="object-contain transition-transform duration-200 group-hover:scale-[1.02]"
-                      sizes="(min-width: 1280px) 285px, (min-width: 1024px) 31vw, (min-width: 640px) 48vw, 100vw"
-                    />
-                  </button>
-                );
-              })}
-            </div>
+            <ProjectGroupView
+              key={group.title ?? activeSection.id}
+              group={group}
+              activeImages={activeImages}
+              setActiveImageIndex={setActiveImageIndex}
+            />
           ))
         ) : (
           <p className="col-span-full py-16 text-center text-xl text-[#555]">zines coming soon</p>
@@ -184,5 +167,175 @@ export default function ProjectTabs() {
         </div>
       )}
     </>
+  );
+}
+
+function ProjectGroupView({
+  group,
+  activeImages,
+  setActiveImageIndex,
+}: {
+  group: ProjectGroup;
+  activeImages: ProjectGroup['images'];
+  setActiveImageIndex: (index: number) => void;
+}) {
+  if (group.layout === 'flipbook') {
+    return <ZineFlipbook group={group} />;
+  }
+
+  return (
+    <div className="contents">
+      {group.title && (
+        <h2 className="col-span-full mt-4 font-[Avara] text-2xl font-normal text-[var(--accent)]">
+          {group.title}
+        </h2>
+      )}
+      {group.images.map((image) => {
+        const index = activeImages.findIndex((item) => item.slug === image.slug);
+
+        return (
+          <button
+            type="button"
+            key={image.slug}
+            className="group relative aspect-[4/3] cursor-zoom-in overflow-hidden border-0 bg-transparent p-0"
+            onClick={() => setActiveImageIndex(index)}
+            aria-label={`Open ${image.alt}`}
+          >
+            <Image
+              src={image.thumb}
+              alt={image.alt}
+              fill
+              className="object-contain transition-transform duration-200 group-hover:scale-[1.02]"
+              sizes="(min-width: 1280px) 285px, (min-width: 1024px) 31vw, (min-width: 640px) 48vw, 100vw"
+            />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ZineFlipbook({ group }: { group: ProjectGroup }) {
+  const bookRef = useRef<{
+    pageFlip: () => {
+      flipNext: (corner?: 'top' | 'bottom') => void;
+      flipPrev: (corner?: 'top' | 'bottom') => void;
+    };
+  } | null>(null);
+  const [pageIndex, setPageIndex] = useState(0);
+  const currentPage = group.images[pageIndex];
+  const canGoPrevious = pageIndex > 0;
+  const canGoNext = pageIndex < group.images.length - 1;
+
+  const showPrevious = () => {
+    bookRef.current?.pageFlip().flipPrev('bottom');
+  };
+
+  const showNext = () => {
+    bookRef.current?.pageFlip().flipNext('bottom');
+  };
+
+  if (!currentPage) {
+    return null;
+  }
+
+  return (
+    <article className="col-span-full mx-auto w-full max-w-5xl">
+      {group.title && (
+        <h2 className="font-[Avara] text-2xl font-normal text-[var(--accent)]">{group.title}</h2>
+      )}
+
+      {group.description && <p className="mt-2 max-w-2xl text-lg text-[#555]">{group.description}</p>}
+
+      {group.links && group.links.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-4 text-lg font-bold">
+          {group.links.map((link) => (
+            <a
+              key={link.href}
+              className="text-[var(--link)] no-underline hover:text-[#004f91]"
+              href={link.href}
+            >
+              {link.label}
+            </a>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-5 grid gap-4 sm:grid-cols-[auto_1fr_auto] sm:items-center">
+        <button
+          type="button"
+          className="h-11 rounded border border-[#cfd8cf] px-4 text-lg font-bold text-[var(--link)] disabled:cursor-not-allowed disabled:opacity-35"
+          onClick={showPrevious}
+          disabled={!canGoPrevious}
+          aria-label="Previous zine page"
+        >
+          prev
+        </button>
+
+        <div className="mx-auto flex w-full max-w-5xl justify-center overflow-hidden">
+          <HTMLFlipBook
+            ref={bookRef}
+            width={420}
+            height={560}
+            size="stretch"
+            minWidth={260}
+            maxWidth={480}
+            minHeight={340}
+            maxHeight={640}
+            drawShadow
+            flippingTime={850}
+            usePortrait
+            startZIndex={0}
+            autoSize
+            maxShadowOpacity={0.35}
+            showCover
+            mobileScrollSupport
+            clickEventForward
+            useMouseEvents
+            swipeDistance={30}
+            showPageCorners
+            disableFlipByClick={false}
+            onFlip={(event: { data: number }) => setPageIndex(event.data)}
+            className="shadow-[0_8px_30px_rgba(0,0,0,0.12)]"
+            style={{}}
+            startPage={0}
+          >
+            {group.images.map((page, index) => (
+              <div
+                key={page.slug}
+                className="relative h-full w-full overflow-hidden bg-white"
+                data-density={index === 0 || index === group.images.length - 1 ? 'hard' : 'soft'}
+              >
+                <Image
+                  src={page.large}
+                  alt={page.alt}
+                  fill
+                  priority={index === 0}
+                  className="object-contain"
+                  sizes="(min-width: 1024px) 480px, 92vw"
+                />
+              </div>
+            ))}
+          </HTMLFlipBook>
+        </div>
+
+        <button
+          type="button"
+          className="h-11 rounded border border-[#cfd8cf] px-4 text-lg font-bold text-[var(--link)] disabled:cursor-not-allowed disabled:opacity-35"
+          onClick={showNext}
+          disabled={!canGoNext}
+          aria-label="Next zine page"
+        >
+          next
+        </button>
+      </div>
+
+      <div className="mt-4 flex items-center justify-center gap-3 text-sm font-bold text-[#555]">
+        <span>
+          {pageIndex + 1} / {group.images.length}
+        </span>
+        <span>{currentPage.alt}</span>
+      </div>
+    </article>
   );
 }
