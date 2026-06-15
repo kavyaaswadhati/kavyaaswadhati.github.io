@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import '@/styles/globals.css';
+import '../styles/globals.css';
 
 export const metadata: Metadata = {
   title: 'Kavya Aswadhati',
@@ -22,32 +22,6 @@ export default function RootLayout({
           >
             kavya aswadhati
           </Link>
-          <nav
-            aria-label="Primary navigation"
-            className="mt-4 flex justify-center gap-5 text-xl font-bold"
-          >
-            <Link className="text-[var(--link)] no-underline hover:text-[#004f91]" href="/">
-              home
-            </Link>
-            <Link
-              className="text-[var(--link)] no-underline hover:text-[#004f91]"
-              href="/pages/about"
-            >
-              about
-            </Link>
-            <Link
-              className="text-[var(--link)] no-underline hover:text-[#004f91]"
-              href="/pages/sketchbooks"
-            >
-              sketchbooks
-            </Link>
-            <Link
-              className="text-[var(--link)] no-underline hover:text-[#004f91]"
-              href="/pages/zines"
-            >
-              zines
-            </Link>
-          </nav>
         </header>
         {children}
       </body>

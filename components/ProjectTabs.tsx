@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import AboutContent from '@/components/AboutContent';
 import { type ProjectGroup, projectSections } from '@/data/projects';
 
 const HTMLFlipBook = dynamic(() => import('react-pageflip'), {
@@ -15,13 +16,20 @@ type ProjectTabsProps = {
   showTabs?: boolean;
 };
 
+type TabId = (typeof projectSections)[number]['id'] | 'about';
+
+const tabs: Array<{ id: TabId; label: string }> = [
+  ...projectSections.map((section) => ({ id: section.id, label: section.label })),
+  { id: 'about', label: 'about' },
+];
+
 export default function ProjectTabs({ sectionId, groupSlug, showTabs = true }: ProjectTabsProps) {
-  const [activeSectionId, setActiveSectionId] = useState(sectionId ?? projectSections[0].id);
+  const [activeTabId, setActiveTabId] = useState<TabId>(sectionId ?? projectSections[0].id);
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
 
   const activeSection = useMemo(
-    () => projectSections.find((section) => section.id === activeSectionId) ?? projectSections[0],
-    [activeSectionId],
+    () => projectSections.find((section) => section.id === activeTabId) ?? projectSections[0],
+    [activeTabId],
   );
   const activeGroups = useMemo(
     () =>
@@ -84,45 +92,56 @@ export default function ProjectTabs({ sectionId, groupSlug, showTabs = true }: P
     <>
       {showTabs && (
         <div className="mx-auto mt-5 flex max-w-[1200px] justify-center gap-2 px-5" role="tablist">
-          {projectSections.map((section) => (
+          {tabs.map((tab) => (
             <button
-              key={section.id}
+              key={tab.id}
               type="button"
               role="tab"
-              aria-selected={section.id === activeSectionId}
-              aria-controls={`${section.id}-panel`}
-              id={`${section.id}-tab`}
+              aria-selected={tab.id === activeTabId}
+              aria-controls={`${tab.id}-panel`}
+              id={`${tab.id}-tab`}
               className="border-b-2 border-transparent px-3 py-2 text-lg font-bold text-[var(--link)] transition-colors aria-selected:border-[var(--accent)] aria-selected:text-[#004f91]"
               onClick={() => {
-                setActiveSectionId(section.id);
+                setActiveTabId(tab.id);
                 setActiveImageIndex(null);
               }}
             >
-              {section.label}
+              {tab.label}
             </button>
           ))}
         </div>
       )}
 
-      <section
-        id={`${activeSection.id}-panel`}
-        role="tabpanel"
-        aria-labelledby={`${activeSection.id}-tab`}
-        className="mx-auto grid max-w-[1200px] grid-cols-1 gap-5 px-5 py-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-      >
-        {activeImages.length > 0 ? (
-          activeGroups.map((group) => (
-            <ProjectGroupView
-              key={group.title ?? activeSection.id}
-              group={group}
-              activeImages={activeImages}
-              setActiveImageIndex={setActiveImageIndex}
-            />
-          ))
-        ) : (
-          <p className="col-span-full py-16 text-center text-xl text-[#555]">zines coming soon</p>
-        )}
-      </section>
+      {activeTabId === 'about' ? (
+        <section
+          id="about-panel"
+          role="tabpanel"
+          aria-labelledby="about-tab"
+          className="mx-auto max-w-[1200px] px-5 py-10"
+        >
+          <AboutContent />
+        </section>
+      ) : (
+        <section
+          id={`${activeSection.id}-panel`}
+          role="tabpanel"
+          aria-labelledby={`${activeSection.id}-tab`}
+          className="mx-auto grid max-w-[1200px] grid-cols-1 gap-5 px-5 py-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        >
+          {activeImages.length > 0 ? (
+            activeGroups.map((group) => (
+              <ProjectGroupView
+                key={group.title ?? activeSection.id}
+                group={group}
+                activeImages={activeImages}
+                setActiveImageIndex={setActiveImageIndex}
+              />
+            ))
+          ) : (
+            <p className="col-span-full py-16 text-center text-xl text-[#555]">zines coming soon</p>
+          )}
+        </section>
+      )}
 
       {activeImage && (
         <div
