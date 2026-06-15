@@ -13,11 +13,22 @@ Guidance for agents working on this website.
 ## Website Changes
 
 - Treat user-facing content as owner-editable. Keep copy, links, image paths, project data, and metadata easy to find.
-- Prefer simple HTML, CSS, and framework-native patterns already present in the repo.
+- This is a Next.js + TypeScript + Tailwind site deployed on Vercel. Prefer framework-native patterns already present in the repo.
 - Keep components small and named by their visible purpose.
 - Use semantic markup and accessible labels for navigation, buttons, images, and forms.
 - Maintain responsive behavior across mobile and desktop.
 - Avoid decorative complexity that makes future edits harder.
+
+## Deployment
+
+- Vercel deploys the connected production branch from the repository root.
+- `vercel.json` pins the project as a Next.js app and runs `npm run build`.
+- Keep `package.json`, `package-lock.json`, `next.config.ts`, and `vercel.json` aligned when changing build behavior.
+- Do not restore the old static root files (`index.html`, `Style.css`, `script.js`) as the deployment surface. Routes live under `app/`.
+- Keep source PNGs under `source-images/`; they are local source assets and are ignored by Git. Committed deployable images live under `public/images/`.
+- Run `npm run images` after adding or changing source artwork before building or deploying.
+- Push to `master` only when the user asks to deploy. Vercel will build and publish automatically after the push.
+- After deployment, verify the live domain and at least one changed asset or route with a simple request.
 
 ## Code Style
 
@@ -38,11 +49,14 @@ Guidance for agents working on this website.
 
 - Favor obvious filenames, straightforward data shapes, and local styles over hidden configuration.
 - Keep repeated content easy to add, remove, or reorder.
-- Prefer readable constants or plain data arrays for portfolios, links, and project lists.
+- Prefer readable constants or plain data arrays for portfolios, links, and project lists. Current project metadata lives in `data/projects.ts`.
 - Avoid burying editable text inside dense logic.
 
 ## Verification
 
 - Run the lightest relevant check after changes: formatting, build, lint, or a local smoke test.
-- For visual edits, inspect the page in realistic mobile and desktop sizes when feasible.
+- For visual edits, run a local preview server and provide the preview URL before pushing or deploying. Use `npm run dev -- --hostname 127.0.0.1 --port 3000` unless that port is unavailable.
+- Inspect the page in realistic mobile and desktop sizes when feasible before asking the owner to approve deployment.
+- Stop any local preview server you started after the user is done reviewing or before finishing the turn, unless the user explicitly wants it left running.
+- Run `npm run lint` and `npm run build` before committing deployable changes.
 - Report what changed, what was checked, and any follow-up risks briefly.
