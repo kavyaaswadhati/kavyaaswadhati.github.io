@@ -23,6 +23,19 @@ const tabs: Array<{ id: TabId; label: string }> = [
   { id: 'about', label: 'about' },
 ];
 
+const getHashSlug = () => decodeURIComponent(window.location.hash.replace(/^#/, ''));
+
+const setHashSlug = (slug: string | null, mode: 'push' | 'replace' = 'push') => {
+  const nextHash = slug ? `#${encodeURIComponent(slug)}` : '';
+  const nextUrl = `${window.location.pathname}${window.location.search}${nextHash}`;
+
+  if (nextUrl === `${window.location.pathname}${window.location.search}${window.location.hash}`) {
+    return;
+  }
+
+  window.history[mode === 'replace' ? 'replaceState' : 'pushState'](null, '', nextUrl);
+};
+
 export default function ProjectTabs({ sectionId, groupSlug, showTabs = true }: ProjectTabsProps) {
   const [activeTabId, setActiveTabId] = useState<TabId>(sectionId ?? projectSections[0].id);
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
@@ -42,23 +55,68 @@ export default function ProjectTabs({ sectionId, groupSlug, showTabs = true }: P
     () => activeGroups.flatMap((group) => group.images),
     [activeGroups],
   );
+  const galleryImages = useMemo(
+    () =>
+      activeGroups
+        .filter((group) => group.layout !== 'flipbook')
+        .flatMap((group) => group.images),
+    [activeGroups],
+  );
   const activeImage = activeImageIndex === null ? null : activeImages[activeImageIndex] ?? null;
 
-  const close = useCallback(() => setActiveImageIndex(null), []);
+  const openImageIndex = useCallback((index: number, mode: 'push' | 'replace' = 'push') => {
+    setActiveImageIndex(index);
+    setHashSlug(activeImages[index]?.slug ?? null, mode);
+  }, [activeImages]);
+
+  const close = useCallback(() => {
+    setActiveImageIndex(null);
+    setHashSlug(null);
+  }, []);
 
   const showPrevious = useCallback(() => {
-    setActiveImageIndex((current) =>
-      current === null
-        ? current
-        : (current - 1 + activeImages.length) % activeImages.length,
-    );
-  }, [activeImages.length]);
+    setActiveImageIndex((current) => {
+      if (current === null) {
+        return current;
+      }
+
+      const next = (current - 1 + activeImages.length) % activeImages.length;
+      setHashSlug(activeImages[next]?.slug ?? null);
+      return next;
+    });
+  }, [activeImages]);
 
   const showNext = useCallback(() => {
-    setActiveImageIndex((current) =>
-      current === null ? current : (current + 1) % activeImages.length,
-    );
-  }, [activeImages.length]);
+    setActiveImageIndex((current) => {
+      if (current === null) {
+        return current;
+      }
+
+      const next = (current + 1) % activeImages.length;
+      setHashSlug(activeImages[next]?.slug ?? null);
+      return next;
+    });
+  }, [activeImages]);
+
+  useEffect(() => {
+    const syncImageFromHash = () => {
+      const hashSlug = getHashSlug();
+      const galleryImage = galleryImages.find((image) => image.slug === hashSlug);
+
+      if (!galleryImage) {
+        setActiveImageIndex(null);
+        return;
+      }
+
+      const index = activeImages.findIndex((image) => image.slug === galleryImage.slug);
+      setActiveImageIndex(index === -1 ? null : index);
+    };
+
+    queueMicrotask(syncImageFromHash);
+    window.addEventListener('hashchange', syncImageFromHash);
+
+    return () => window.removeEventListener('hashchange', syncImageFromHash);
+  }, [activeImages, galleryImages]);
 
   useEffect(() => {
     if (activeImageIndex === null) {
@@ -104,6 +162,7 @@ export default function ProjectTabs({ sectionId, groupSlug, showTabs = true }: P
               onClick={() => {
                 setActiveTabId(tab.id);
                 setActiveImageIndex(null);
+                setHashSlug(null);
               }}
             >
               {tab.label}
@@ -134,7 +193,7 @@ export default function ProjectTabs({ sectionId, groupSlug, showTabs = true }: P
                 key={group.title ?? activeSection.id}
                 group={group}
                 activeImages={activeImages}
-                setActiveImageIndex={setActiveImageIndex}
+                openImageIndex={openImageIndex}
               />
             ))
           ) : (
@@ -207,11 +266,11 @@ export default function ProjectTabs({ sectionId, groupSlug, showTabs = true }: P
 function ProjectGroupView({
   group,
   activeImages,
-  setActiveImageIndex,
+  openImageIndex,
 }: {
   group: ProjectGroup;
   activeImages: ProjectGroup['images'];
-  setActiveImageIndex: (index: number) => void;
+  openImageIndex: (index: number) => void;
 }) {
   if (group.layout === 'flipbook') {
     return <ZineFlipbook group={group} />;
@@ -232,7 +291,7 @@ function ProjectGroupView({
             type="button"
             key={image.slug}
             className="group relative aspect-[4/3] cursor-zoom-in overflow-hidden border-0 bg-transparent p-0"
-            onClick={() => setActiveImageIndex(index)}
+            onClick={() => openImageIndex(index)}
             aria-label={`Open ${image.alt}`}
           >
             <Image
@@ -254,12 +313,36 @@ function ZineFlipbook({ group }: { group: ProjectGroup }) {
     pageFlip: () => {
       flipNext: (corner?: 'top' | 'bottom') => void;
       flipPrev: (corner?: 'top' | 'bottom') => void;
+      turnToPage: (page: number) => void;
     };
   } | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
   const currentPage = group.images[pageIndex];
+  const lastPageIndex = group.images.length - 1;
   const canGoPrevious = pageIndex > 0;
-  const canGoNext = pageIndex < group.images.length - 1;
+  const canGoNext = pageIndex < lastPageIndex;
+  const currentViewLabel =
+    pageIndex === 0
+      ? 'Cover'
+      : pageIndex === lastPageIndex
+        ? 'Back cover'
+        : `Pages ${pageIndex}-${Math.min(pageIndex + 1, lastPageIndex - 1)}`;
+
+  const hashPageIndex = useCallback(
+    () => group.images.findIndex((page) => page.slug === getHashSlug()),
+    [group.images],
+  );
+
+  const syncPageFromHash = useCallback(() => {
+    const nextPageIndex = hashPageIndex();
+
+    if (nextPageIndex === -1) {
+      return;
+    }
+
+    setPageIndex(nextPageIndex);
+    bookRef.current?.pageFlip().turnToPage(nextPageIndex);
+  }, [hashPageIndex]);
 
   const showPrevious = () => {
     bookRef.current?.pageFlip().flipPrev('bottom');
@@ -268,6 +351,13 @@ function ZineFlipbook({ group }: { group: ProjectGroup }) {
   const showNext = () => {
     bookRef.current?.pageFlip().flipNext('bottom');
   };
+
+  useEffect(() => {
+    queueMicrotask(syncPageFromHash);
+    window.addEventListener('hashchange', syncPageFromHash);
+
+    return () => window.removeEventListener('hashchange', syncPageFromHash);
+  }, [syncPageFromHash]);
 
   if (!currentPage) {
     return null;
@@ -312,13 +402,13 @@ function ZineFlipbook({ group }: { group: ProjectGroup }) {
             width={420}
             height={560}
             size="stretch"
-            minWidth={260}
+            minWidth={130}
             maxWidth={480}
-            minHeight={340}
+            minHeight={174}
             maxHeight={640}
             drawShadow
             flippingTime={850}
-            usePortrait
+            usePortrait={false}
             startZIndex={0}
             autoSize
             maxShadowOpacity={0.35}
@@ -329,7 +419,11 @@ function ZineFlipbook({ group }: { group: ProjectGroup }) {
             swipeDistance={30}
             showPageCorners
             disableFlipByClick={false}
-            onFlip={(event: { data: number }) => setPageIndex(event.data)}
+            onInit={syncPageFromHash}
+            onFlip={(event: { data: number }) => {
+              setPageIndex(event.data);
+              setHashSlug(group.images[event.data]?.slug ?? null, 'replace');
+            }}
             className="shadow-[0_8px_30px_rgba(0,0,0,0.12)]"
             style={{}}
             startPage={0}
@@ -346,7 +440,7 @@ function ZineFlipbook({ group }: { group: ProjectGroup }) {
                   fill
                   priority={index === 0}
                   className="object-contain"
-                  sizes="(min-width: 1024px) 480px, 92vw"
+                  sizes="(min-width: 1024px) 480px, 46vw"
                 />
               </div>
             ))}
@@ -364,11 +458,8 @@ function ZineFlipbook({ group }: { group: ProjectGroup }) {
         </button>
       </div>
 
-      <div className="mt-4 flex items-center justify-center gap-3 text-sm font-bold text-[#555]">
-        <span>
-          {pageIndex + 1} / {group.images.length}
-        </span>
-        <span>{currentPage.alt}</span>
+      <div className="mt-4 flex items-center justify-center text-sm font-bold text-[#555]">
+        <span>{currentViewLabel}</span>
       </div>
     </article>
   );
