@@ -25,9 +25,31 @@ const tabs: Array<{ id: TabId; label: string }> = [
 
 const getHashSlug = () => decodeURIComponent(window.location.hash.replace(/^#/, ''));
 
-const setHashSlug = (slug: string | null, mode: 'push' | 'replace' = 'push') => {
+const getProjectPath = (slug: string) => {
+  for (const section of projectSections) {
+    for (const group of section.groups) {
+      if (!group.images.some((image) => image.slug === slug)) {
+        continue;
+      }
+
+      if (section.id === 'zines' && group.slug) {
+        return `/pages/zines/${group.slug}`;
+      }
+
+      return `/pages/${section.id}`;
+    }
+  }
+
+  return window.location.pathname;
+};
+
+const setHashSlug = (
+  slug: string | null,
+  mode: 'push' | 'replace' = 'push',
+  pathname = window.location.pathname,
+) => {
   const nextHash = slug ? `#${encodeURIComponent(slug)}` : '';
-  const nextUrl = `${window.location.pathname}${window.location.search}${nextHash}`;
+  const nextUrl = `${pathname}${window.location.search}${nextHash}`;
 
   if (nextUrl === `${window.location.pathname}${window.location.search}${window.location.hash}`) {
     return;
@@ -64,9 +86,32 @@ export default function ProjectTabs({ sectionId, groupSlug, showTabs = true }: P
   );
   const activeImage = activeImageIndex === null ? null : activeImages[activeImageIndex] ?? null;
 
+  useEffect(() => {
+    if (sectionId) {
+      return;
+    }
+
+    const syncTabFromHash = () => {
+      const hashSlug = getHashSlug();
+      const matchingSection = projectSections.find((section) =>
+        section.groups.some((group) => group.images.some((image) => image.slug === hashSlug)),
+      );
+
+      if (matchingSection) {
+        setActiveTabId(matchingSection.id);
+      }
+    };
+
+    queueMicrotask(syncTabFromHash);
+    window.addEventListener('hashchange', syncTabFromHash);
+
+    return () => window.removeEventListener('hashchange', syncTabFromHash);
+  }, [sectionId]);
+
   const openImageIndex = useCallback((index: number, mode: 'push' | 'replace' = 'push') => {
     setActiveImageIndex(index);
-    setHashSlug(activeImages[index]?.slug ?? null, mode);
+    const slug = activeImages[index]?.slug ?? null;
+    setHashSlug(slug, mode, slug ? getProjectPath(slug) : undefined);
   }, [activeImages]);
 
   const close = useCallback(() => {
@@ -81,7 +126,8 @@ export default function ProjectTabs({ sectionId, groupSlug, showTabs = true }: P
       }
 
       const next = (current - 1 + activeImages.length) % activeImages.length;
-      setHashSlug(activeImages[next]?.slug ?? null);
+      const slug = activeImages[next]?.slug ?? null;
+      setHashSlug(slug, 'push', slug ? getProjectPath(slug) : undefined);
       return next;
     });
   }, [activeImages]);
@@ -93,7 +139,8 @@ export default function ProjectTabs({ sectionId, groupSlug, showTabs = true }: P
       }
 
       const next = (current + 1) % activeImages.length;
-      setHashSlug(activeImages[next]?.slug ?? null);
+      const slug = activeImages[next]?.slug ?? null;
+      setHashSlug(slug, 'push', slug ? getProjectPath(slug) : undefined);
       return next;
     });
   }, [activeImages]);
@@ -422,7 +469,8 @@ function ZineFlipbook({ group }: { group: ProjectGroup }) {
             onInit={syncPageFromHash}
             onFlip={(event: { data: number }) => {
               setPageIndex(event.data);
-              setHashSlug(group.images[event.data]?.slug ?? null, 'replace');
+              const slug = group.images[event.data]?.slug ?? null;
+              setHashSlug(slug, 'replace', slug ? getProjectPath(slug) : undefined);
             }}
             className="shadow-[0_8px_30px_rgba(0,0,0,0.12)]"
             style={{}}
