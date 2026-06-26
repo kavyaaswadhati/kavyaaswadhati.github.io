@@ -13,6 +13,8 @@ const HTMLFlipBook = dynamic(() => import('react-pageflip'), {
 type ProjectTabsProps = {
   sectionId?: (typeof projectSections)[number]['id'];
   groupSlug?: string;
+  initialImageSlug?: string;
+  initialZinePageSlug?: string;
   showTabs?: boolean;
 };
 
@@ -48,7 +50,10 @@ const setHashSlug = (
   mode: 'push' | 'replace' = 'push',
   pathname = window.location.pathname,
 ) => {
-  const nextHash = slug ? `#${encodeURIComponent(slug)}` : '';
+  const nextHash =
+    slug && pathname === window.location.pathname && pathname !== getProjectPath(slug)
+      ? `#${encodeURIComponent(slug)}`
+      : '';
   const nextUrl = `${pathname}${window.location.search}${nextHash}`;
 
   if (nextUrl === `${window.location.pathname}${window.location.search}${window.location.hash}`) {
@@ -58,7 +63,13 @@ const setHashSlug = (
   window.history[mode === 'replace' ? 'replaceState' : 'pushState'](null, '', nextUrl);
 };
 
-export default function ProjectTabs({ sectionId, groupSlug, showTabs = true }: ProjectTabsProps) {
+export default function ProjectTabs({
+  sectionId,
+  groupSlug,
+  initialImageSlug,
+  initialZinePageSlug,
+  showTabs = true,
+}: ProjectTabsProps) {
   const [activeTabId, setActiveTabId] = useState<TabId>(sectionId ?? projectSections[0].id);
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
 
@@ -116,8 +127,8 @@ export default function ProjectTabs({ sectionId, groupSlug, showTabs = true }: P
 
   const close = useCallback(() => {
     setActiveImageIndex(null);
-    setHashSlug(null);
-  }, []);
+    setHashSlug(null, 'push', `/pages/${activeSection.id}`);
+  }, [activeSection.id]);
 
   const showPrevious = useCallback(() => {
     setActiveImageIndex((current) => {
@@ -147,7 +158,7 @@ export default function ProjectTabs({ sectionId, groupSlug, showTabs = true }: P
 
   useEffect(() => {
     const syncImageFromHash = () => {
-      const hashSlug = getHashSlug();
+      const hashSlug = getHashSlug() || initialImageSlug;
       const galleryImage = galleryImages.find((image) => image.slug === hashSlug);
 
       if (!galleryImage) {
@@ -163,7 +174,7 @@ export default function ProjectTabs({ sectionId, groupSlug, showTabs = true }: P
     window.addEventListener('hashchange', syncImageFromHash);
 
     return () => window.removeEventListener('hashchange', syncImageFromHash);
-  }, [activeImages, galleryImages]);
+  }, [activeImages, galleryImages, initialImageSlug]);
 
   useEffect(() => {
     if (activeImageIndex === null) {
@@ -241,6 +252,7 @@ export default function ProjectTabs({ sectionId, groupSlug, showTabs = true }: P
                 group={group}
                 activeImages={activeImages}
                 openImageIndex={openImageIndex}
+                initialZinePageSlug={initialZinePageSlug}
               />
             ))
           ) : (
@@ -314,13 +326,15 @@ function ProjectGroupView({
   group,
   activeImages,
   openImageIndex,
+  initialZinePageSlug,
 }: {
   group: ProjectGroup;
   activeImages: ProjectGroup['images'];
   openImageIndex: (index: number) => void;
+  initialZinePageSlug?: string;
 }) {
   if (group.layout === 'flipbook') {
-    return <ZineFlipbook group={group} />;
+    return <ZineFlipbook group={group} initialPageSlug={initialZinePageSlug} />;
   }
 
   return (
@@ -355,7 +369,13 @@ function ProjectGroupView({
   );
 }
 
-function ZineFlipbook({ group }: { group: ProjectGroup }) {
+function ZineFlipbook({
+  group,
+  initialPageSlug,
+}: {
+  group: ProjectGroup;
+  initialPageSlug?: string;
+}) {
   const bookRef = useRef<{
     pageFlip: () => {
       flipNext: (corner?: 'top' | 'bottom') => void;
@@ -376,8 +396,8 @@ function ZineFlipbook({ group }: { group: ProjectGroup }) {
         : `Pages ${pageIndex}-${Math.min(pageIndex + 1, lastPageIndex - 1)}`;
 
   const hashPageIndex = useCallback(
-    () => group.images.findIndex((page) => page.slug === getHashSlug()),
-    [group.images],
+    () => group.images.findIndex((page) => page.slug === (getHashSlug() || initialPageSlug)),
+    [group.images, initialPageSlug],
   );
 
   const syncPageFromHash = useCallback(() => {
